@@ -12,12 +12,6 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Contact_app_recycler_view">
         <activity
-            android:name=".dialog_edit_item"
-            android:exported="false" />
-        <activity
-            android:name=".item_contact"
-            android:exported="false" />
-        <activity
             android:name=".MainActivity"
             android:exported="true">
             <intent-filter>

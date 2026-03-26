@@ -1,61 +1,101 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/main"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="16dp"
-    tools:context=".MainActivity">
+    android:background="#F5F5F5"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
 
     <TextView
-        android:id="@+id/tvTitle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Contact Saver App"
-        android:textSize="24sp"
+        android:text="Contacts"
+        android:textSize="26sp"
         android:textStyle="bold"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginBottom="16dp" />
+        android:textColor="#222"
+        android:layout_marginBottom="12dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"/>
+
+    <SearchView
+        android:id="@+id/searchView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:queryHint="Search contacts..."
+        android:iconifiedByDefault="false"
+        android:layout_marginBottom="10dp"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="10dp">
+
+        <Button
+            android:id="@+id/btnAsc"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:text="A-Z"
+            android:backgroundTint="#4CAF50"
+            android:textColor="#fff"
+            android:layout_height="wrap_content"/>
+
+        <Button
+            android:id="@+id/btnDesc"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:text="Z-A"
+            android:backgroundTint="#FF9800"
+            android:textColor="#fff"
+            android:layout_marginStart="6dp"
+            android:layout_height="wrap_content"/>
+    </LinearLayout>
 
     <EditText
         android:id="@+id/etName"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
         android:hint="Enter Name"
-        android:inputType="textPersonName"
-        android:layout_marginBottom="10dp" />
+        android:padding="12dp"
+        android:background="@android:drawable/edit_text"
+        android:layout_marginBottom="8dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
 
     <EditText
         android:id="@+id/etPhone"
+        android:hint="Enter Phone"
+        android:padding="12dp"
+        android:background="@android:drawable/edit_text"
+        android:layout_marginBottom="8dp"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Enter Phone Number"
-        android:inputType="phone"
-        android:maxLength="11"
-        android:layout_marginBottom="12dp" />
+        android:layout_height="wrap_content"/>
 
+    <Button
+        android:id="@+id/btnSelectImage"
+        android:text="Select Profile Picture"
+        android:layout_marginBottom="8dp"
+        android:backgroundTint="#2196F3"
+        android:textColor="#fff"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
 
     <Button
         android:id="@+id/btnSave"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
         android:text="Save Contact"
-        android:layout_marginBottom="16dp" />
+        android:layout_marginBottom="8dp"
+        android:backgroundTint="#4CAF50"
+        android:textColor="#fff"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+    <Button
+        android:id="@+id/btnLoadContacts"
+        android:text="Load Phone Contacts"
+        android:layout_marginBottom="10dp"
+        android:backgroundTint="#9C27B0"
+        android:textColor="#fff"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerViewContacts"
         android:layout_width="match_parent"
-        android:layout_height="287dp"
-        android:layout_weight="1"
-        android:clipToPadding="false"
-        android:paddingBottom="8dp" />
-    <Button
-        android:id="@+id/btnLoadContacts"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Load Contacts From Phone"
-        android:layout_marginBottom="16dp" />
-
+        android:layout_height="0dp"
+        android:layout_weight="1"/>
 </LinearLayout>

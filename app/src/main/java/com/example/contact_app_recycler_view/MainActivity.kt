@@ -2,236 +2,159 @@ package com.example.contact_app_recycler_view
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
 import android.provider.ContactsContract
 import android.view.LayoutInflater
-import android.widget.Button
-import android.widget.EditText
-import android.widget.Toast
+import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 
 class MainActivity : AppCompatActivity(), ContactAdapter.OnContactActionListener {
+
     private lateinit var etName: EditText
     private lateinit var etPhone: EditText
     private lateinit var btnSave: Button
     private lateinit var btnLoadContacts: Button
-    private lateinit var recyclerViewContacts: RecyclerView
+    private lateinit var recyclerView: RecyclerView
+    private lateinit var searchView: SearchView
+    private lateinit var btnAsc: Button
+    private lateinit var btnDesc: Button
+    private lateinit var btnSelectImage: Button
 
-    private lateinit var contactAdapter: ContactAdapter
+    private lateinit var adapter: ContactAdapter
     private val contactList = mutableListOf<Contact>()
 
-    // for contact loading permission request
-    private val requestContactsPermission =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
-            if (isGranted) {
-                loadContactsFromPhone()
-            } else {
-                Toast.makeText(this, "Contacts permission denied", Toast.LENGTH_SHORT).show()
-            }
+    private var selectedImageUri: Uri? = null
+
+    private val pickImage =
+        registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+            selectedImageUri = uri
+            Toast.makeText(this, "Image selected", Toast.LENGTH_SHORT).show()
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         setContentView(R.layout.activity_main)
 
-        // Initialize UI components
         etName = findViewById(R.id.etName)
         etPhone = findViewById(R.id.etPhone)
         btnSave = findViewById(R.id.btnSave)
         btnLoadContacts = findViewById(R.id.btnLoadContacts)
-        recyclerViewContacts = findViewById(R.id.recyclerViewContacts)
+        recyclerView = findViewById(R.id.recyclerViewContacts)
+        searchView = findViewById(R.id.searchView)
+        btnAsc = findViewById(R.id.btnAsc)
+        btnDesc = findViewById(R.id.btnDesc)
+        btnSelectImage = findViewById(R.id.btnSelectImage)
 
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
+        adapter = ContactAdapter(contactList, this)
+        recyclerView.layoutManager = LinearLayoutManager(this)
+        recyclerView.adapter = adapter
+
+        btnSelectImage.setOnClickListener {
+            pickImage.launch("image/*")
         }
 
-        // Setup RecyclerView
-        contactAdapter = ContactAdapter(contactList, this)
-        recyclerViewContacts.layoutManager = LinearLayoutManager(this)
-        recyclerViewContacts.adapter = contactAdapter
-
-        // Button Click Listeners
         btnSave.setOnClickListener {
-            saveContact()
+            val name = etName.text.toString()
+            val phone = etPhone.text.toString()
+
+            if (name.isEmpty() || phone.isEmpty()) {
+                Toast.makeText(this, "Enter all fields", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            contactList.add(Contact(name, phone, selectedImageUri?.toString()))
+            adapter.updateList(contactList)
+
+            selectedImageUri = null
+            etName.text.clear()
+            etPhone.text.clear()
         }
 
         btnLoadContacts.setOnClickListener {
-            checkPermissionAndLoadContacts()
-        }
-    }
-
-    private fun saveContact() {
-        val name = etName.text.toString().trim()
-        val phone = etPhone.text.toString().trim()
-
-        if (!validateInputs(name, phone, etName, etPhone)) {
-            return
+            loadContacts()
         }
 
-        val newContact = Contact(name, phone)
-        contactList.add(newContact)
-        contactAdapter.notifyItemInserted(contactList.size - 1)
-        recyclerViewContacts.scrollToPosition(contactList.size - 1)
+        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+            override fun onQueryTextSubmit(query: String?) = false
 
-        Toast.makeText(this, "Contact saved successfully", Toast.LENGTH_SHORT).show()
+            override fun onQueryTextChange(newText: String?): Boolean {
+                adapter.filter(newText ?: "")
+                return true
+            }
+        })
 
-        etName.text.clear()
-        etPhone.text.clear()
-        etName.requestFocus()
+        btnAsc.setOnClickListener { adapter.sortAscending() }
+        btnDesc.setOnClickListener { adapter.sortDescending() }
     }
 
-    private fun validateInputs(name: String, phone: String, nameInput: EditText, phoneInput: EditText): Boolean {
-        var isValid = true
-
-        if (name.isEmpty()) {
-            nameInput.error = "Name is required"
-            isValid = false
-        }
-
-        if (phone.isEmpty()) {
-            phoneInput.error = "Phone number is required"
-            isValid = false
-        } else if (phone.length < 10 || !phone.all { it.isDigit() || it == '+' }) {
-            phoneInput.error = "Enter valid phone number"
-            isValid = false
-        }
-
-        return isValid
-    }
-
-    override fun onItemClick(position: Int) {
-        val contact = contactList[position]
-        Toast.makeText(this, "Contact: ${contact.name}\nPhone: ${contact.phone}", Toast.LENGTH_SHORT).show()
-    }
+    override fun onItemClick(position: Int) {}
 
     override fun onEditClick(position: Int) {
-        showEditDialog(position)
-    }
-
-    override fun onDeleteClick(position: Int) {
-        showDeleteDialog(position)
-    }
-
-    private fun showDeleteDialog(position: Int) {
-        AlertDialog.Builder(this)
-            .setTitle("Delete Contact")
-            .setMessage("Are you sure you want to delete this contact?")
-            .setPositiveButton("Yes") { _, _ ->
-                contactList.removeAt(position)
-                contactAdapter.notifyItemRemoved(position)
-                contactAdapter.notifyItemRangeChanged(position, contactList.size)
-                Toast.makeText(this, "Contact deleted", Toast.LENGTH_SHORT).show()
-            }
-            .setNegativeButton("No", null)
-            .show()
-    }
-
-    private fun checkPermissionAndLoadContacts() {
-        when {
-            ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.READ_CONTACTS
-            ) == PackageManager.PERMISSION_GRANTED -> {
-                loadContactsFromPhone()
-            }
-            shouldShowRequestPermissionRationale(Manifest.permission.READ_CONTACTS) -> {
-                AlertDialog.Builder(this)
-                    .setTitle("Permission Required")
-                    .setMessage("This app needs permission to read your contacts to display them.")
-                    .setPositiveButton("Grant") { _, _ ->
-                        requestContactsPermission.launch(Manifest.permission.READ_CONTACTS)
-                    }
-                    .setNegativeButton("Deny", null)
-                    .show()
-            }
-            else -> {
-                requestContactsPermission.launch(Manifest.permission.READ_CONTACTS)
-            }
-        }
-    }
-
-    private fun loadContactsFromPhone() {
-        val loadedContacts = mutableListOf<Contact>()
-
-        val projection = arrayOf(
-            ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
-            ContactsContract.CommonDataKinds.Phone.NUMBER
-        )
-
-        val cursor = contentResolver.query(
-            ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
-            projection,
-            null,
-            null,
-            ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME + " ASC"
-        )
-
-        cursor?.use {
-            val nameIndex = it.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME)
-            val phoneIndex = it.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER)
-
-            while (it.moveToNext()) {
-                val name = it.getString(nameIndex) ?: ""
-                val phone = it.getString(phoneIndex) ?: ""
-
-                if (name.isNotBlank() && phone.isNotBlank()) {
-                    loadedContacts.add(Contact(name, phone))
-                }
-            }
-        }
-
-        if (loadedContacts.isEmpty()) {
-            Toast.makeText(this, "No contacts found on your phone", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        contactList.clear()
-        contactList.addAll(loadedContacts)
-        contactAdapter.notifyDataSetChanged()
-
-        Toast.makeText(this, "${loadedContacts.size} contacts loaded", Toast.LENGTH_SHORT).show()
-    }
-
-    private fun showEditDialog(position: Int) {
-        val dialogView = LayoutInflater.from(this).inflate(R.layout.activity_dialog_edit_item, null)
-        val etEditName = dialogView.findViewById<EditText>(R.id.etEditName)
-        val etEditPhone = dialogView.findViewById<EditText>(R.id.etEditPhone)
-
         val contact = contactList[position]
+
+        val view = LayoutInflater.from(this).inflate(R.layout.activity_dialog_edit_item, null)
+        val etEditName = view.findViewById<EditText>(R.id.etEditName)
+        val etEditPhone = view.findViewById<EditText>(R.id.etEditPhone)
+        val btnChangeImage = view.findViewById<Button>(R.id.btnChangeImage)
+
         etEditName.setText(contact.name)
         etEditPhone.setText(contact.phone)
 
-        val dialog = AlertDialog.Builder(this)
-            .setTitle("Edit Contact")
-            .setView(dialogView)
-            .setPositiveButton("Update", null)
+        btnChangeImage.setOnClickListener {
+            pickImage.launch("image/*")
+        }
+
+        AlertDialog.Builder(this)
+            .setView(view)
+            .setPositiveButton("Update") { _, _ ->
+                contact.name = etEditName.text.toString()
+                contact.phone = etEditPhone.text.toString()
+                if (selectedImageUri != null) {
+                    contact.imageUri = selectedImageUri.toString()
+                }
+                adapter.updateList(contactList)
+            }
             .setNegativeButton("Cancel", null)
-            .create()
+            .show()
+    }
 
-        dialog.show()
+    override fun onDeleteClick(position: Int) {
+        contactList.removeAt(position)
+        adapter.updateList(contactList)
+    }
 
-        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-            val updatedName = etEditName.text.toString().trim()
-            val updatedPhone = etEditPhone.text.toString().trim()
+    private fun loadContacts() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CONTACTS)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            requestPermissions(arrayOf(Manifest.permission.READ_CONTACTS), 1)
+            return
+        }
 
-            if (validateInputs(updatedName, updatedPhone, etEditName, etEditPhone)) {
-                contact.name = updatedName
-                contact.phone = updatedPhone
-                contactAdapter.notifyItemChanged(position)
-                Toast.makeText(this, "Contact updated", Toast.LENGTH_SHORT).show()
-                dialog.dismiss()
+        val cursor = contentResolver.query(
+            ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+            null, null, null, null
+        )
+
+        cursor?.use {
+            contactList.clear()
+            while (it.moveToNext()) {
+                val name = it.getString(
+                    it.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME)
+                )
+                val phone = it.getString(
+                    it.getColumnIndexOrThrow(ContactsContract.CommonDataKinds.Phone.NUMBER)
+                )
+                contactList.add(Contact(name, phone))
             }
         }
+
+        adapter.updateList(contactList)
     }
 }
